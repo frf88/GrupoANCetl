@@ -1,0 +1,36 @@
+name: Pipeline diario
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC = 03:00 Bolivia (UTC-4)
+  workflow_dispatch: {}
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: uv sync
+
+      - name: Escribir credencial de Google
+        run: |
+          mkdir -p credentials
+          printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > credentials/google-service-account.json
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Correr pipeline
+        env:
+          IZI_BASE_URL: ${{ secrets.IZI_BASE_URL }}
+          IZI_EMAIL: ${{ secrets.IZI_EMAIL }}
+          IZI_PASSWORD: ${{ secrets.IZI_PASSWORD }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: credentials/google-service-account.json
+          DUCKDB_PATH: data/warehouse.duckdb
+        run: uv run python -m src.pipeline
