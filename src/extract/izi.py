@@ -63,3 +63,17 @@ def fetch_items_inventario(token: str, contribuyente: str) -> list:
     )
     response.raise_for_status()
     return response.json()
+
+
+def fetch_movimientos(token: str, contribuyente: str, desde: str, hasta: str) -> list:
+    response = requests.get(
+        f"{BASE_URL}/movimientos",
+        params={"desde": desde, "hasta": hasta},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "izi-contribuyente": contribuyente,
+        },
+    )
+    response.raise_for_status()
+    return response.json()

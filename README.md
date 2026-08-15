@@ -35,8 +35,8 @@ Mecánica: el pipeline escribe `gold.fct_ventas_items` / `gold.dim_producto` en 
 ✅ Entorno de desarrollo listo: `uv` instalado, Python 3.12 gestionado por `uv`, proyecto inicializado (`pyproject.toml`, `.venv`, `git` local) y esqueleto de carpetas creado. VS Code conectado (extensión Claude Code + Python + Jupyter), con `notebooks/explorar_datos.ipynb` para inspeccionar cualquier tabla del warehouse.
 
 ✅ **Arquitectura de datos definida: RAW + GOLD, ambos esquemas dentro de `data/warehouse.duckdb`** (no bases separadas):
-- **`raw`**: tablas tal cual llegan de la fuente, sin filtrar (`raw.izi_facturas`, `raw.izi_items_inventario`).
-- **`gold`**: tablas de hechos y dimensiones listas para análisis (`gold.fct_ventas_items`, `gold.dim_producto`).
+- **`raw`**: tablas tal cual llegan de la fuente, sin filtrar (`raw.izi_facturas`, `raw.izi_items_inventario`, `raw.matriz_relaciones_ancestral`).
+- **`gold`**: tablas de hechos y dimensiones listas para análisis (`gold.fct_ventas_items`, `gold.dim_producto`, `gold.fct_movimiento_inventario`, `gold.dim_receta_ancestral`, `gold.fct_consumo_insumos_ancestral`).
 
 ✅ **Fuente iZi migrada completa, ambos negocios**, replicando la lógica de las Power Queries existentes:
 - `src/extract/izi.py` — login + `fetch_facturas` + `fetch_items_inventario`.
@@ -46,9 +46,44 @@ Mecánica: el pipeline escribe `gold.fct_ventas_items` / `gold.dim_producto` en 
 - Nota de negocio preservada: la exclusión del código `AN000046` solo aplica a Ancestral (así estaba en su Power Query original; omuH no la tenía).
 - Pendiente menor: 377 de 78,754 líneas de venta (0.5%) no matchean con `dim_producto` — a investigar cuando se use ese join en serio.
 
+✅ **Automatización diaria con GitHub Actions** (repo privado [github.com/frf88/GrupoANCetl](https://github.com/frf88/GrupoANCetl)) — `.github/workflows/pipeline.yml` corre el pipeline todos los días a las 3am hora Bolivia (`cron: "0 7 * * *"` UTC) y también permite disparo manual ("Run workflow") — sin necesitar ningún servidor propio. Credenciales guardadas como GitHub Secrets (`IZI_BASE_URL`, `IZI_EMAIL`, `IZI_PASSWORD`, `GOOGLE_SERVICE_ACCOUNT_JSON`).
+
+✅ **Publicación a Google Sheets funcionando** (extensión `gsheets` de DuckDB, `src/load/publish_gsheets.py`) — probada con éxito escribiendo `gold.fct_ventas_items` y `gold.dim_producto` a una Sheet real. **Pausada a pedido del usuario (2026-08-14)** mientras se compilan más fuentes para el dashboard de Inventarios y se define el modelo de datos final — no se llama desde `pipeline.py` por ahora (ver ese archivo para reactivarla).
+
+✅ **Migración completa de las 38 Power Queries del usuario (2026-08-15) — 28 tablas gold**, todas compiladas fuente por fuente, mismo patrón raw/gold, pipeline corriendo sin errores de punta a punta:
+- **iZi (API)**: `fct_ventas_items`, `dim_producto`, `fct_movimiento_inventario`, `fct_mov_inv_omuh` / `fct_mov_inv_omuh_todos` (endpoint nuevo `/movimientos`).
+- **Recetas/consumo**: `dim_receta_ancestral` / `dim_receta_omuh` (matriz insumo↔producto, con merma; estandarizado a usar siempre `Cantidad usada (kg o u)`, no existe una versión en gramos separada), `fct_consumo_insumos_ancestral` (generaliza el caso HUARI/Michelada a cualquier insumo con código propio — ej. futuro Negroni de 3 botellas), `pesos_platos_ancestral`.
+- **Compras**: `fct_compras_insumos_ancestral` / `_omuh`, `fct_compras_totales_ancestral`, `dim_compras_precios_ancestral`, `dim_producto_izi`.
+- **Inventario físico** (Sheets anchas, fecha por columna): `fct_inventario_fisico`, `fct_inventario_omuh`, `fct_inventario_unitarios_omuh`, `fct_inventario_unitarios_gs`, `fct_inventario_insumos_gs`.
+- **Salidas/mermas**: `fct_salidas_mermas_ancestral` / `_omuh`, `fct_apertura_vinos_copa`.
+- **PedidosYa**: `fct_pedidosya_items`, `fct_ventas_omuh_pedidosya`, `fct_extras_izi_omuh` (incluye la lógica de "Vegetarianas" como paso intermedio).
+- **Copas de vino**: `dim_relacion_copa_vino`, `fct_copas_vino_ancestral` — se migró igual aunque la fuente estaba en "Pendientes a eliminar" del usuario; se revisará qué se usa realmente cuando se defina el modelo final.
+- **Otros**: `dim_min_max_porciones` (tabla chica embebida en la Power Query original, decodificada de base64).
+- Extractores genéricos reutilizables agregados: `src/extract/gsheet_csv.py` (Sheets publicadas como CSV), `src/extract/http.py` (bytes genéricos, ej. Excel), `src/load/raw_xlsx.py`, `src/load/raw_json_list` (JSON de la API iZi). `src/load/raw_csv.py` soporta `skip=N` para Sheets con filas basura antes del encabezado real.
+- Bugs encontrados y corregidos en las Power Queries originales (documentados en el código con comentarios, aplicados sin confirmación final del usuario — ver abajo): `Compras Precios` eliminaba su propia columna calculada `Precio Compra`; `Matriz_de_Relaciones omuh` filtraba `= null` en vez de `<> null`; la hoja "Ventas Extras iZi" traía `Fecha` como texto sin parsear (bug nuestro, no de la Power Query original).
+
+### Objetivo final del dashboard de Inventarios
+Reconciliación semanal de stock por producto: Inv. inicial + Compras − Ventas − Ventas Ext − Cortesías − Salidas = Inv. calculado, comparado contra el conteo físico real = Diferencia. "Cortesías" se calcula en la capa de visualización (no en `gold`) a partir de `fct_mov_inv_omuh_todos` filtrando `tipoMovimiento IN ('interna','prod-venta')` menos las ventas.
+
+✅ **Primera tabla de reconciliación construida y validada (2026-08-15): `gold.fct_reconciliacion_bebidas_ancestral`** — replica la tabla "Control Inventario: Bebidas" del dashboard real de Ancestral.
+- `src/transform/gold_reconciliacion.py` — usa las fechas reales de conteo físico (vía `LAG()` sobre `fct_inventario_fisico`) como límites de cada semana, en vez de replicar la lógica de calendario/semana-ISO del modelo original (más simple y se ajusta sola a cuándo se cuenta en la realidad). Confirmado con el usuario: su semana corre lunes a domingo, y los conteos caen justo en domingo — coincide.
+- **Validado contra datos reales**: para HUARI, semana del 19 al 26 de julio 2026, el modelo da Inv. inicial=81, Ventas=12 (directas + consumo vía Michelada), Inv. calculado=69, que coincide exacto con el conteo físico real (Cierre=69, Diferencia=0) — mismos números que el dashboard del usuario.
+- Columna **Cortesías** queda en 0 (placeholder) — fórmula pendiente de confirmar (ver preguntas abiertas).
+- Nota de calidad de datos: hay productos duplicados y filas con producto vacío en la Sheet de conteo físico — no se corrigieron, quedan tal cual vienen de la fuente.
+- Pendiente: replicar la segunda tabla del dashboard (detalle diario) y el gráfico de ventas por semana; extender el patrón a otras categorías/negocios (hoy solo cubre bebidas de Ancestral).
+
+✅ **Publicada a Google Sheets + formato armado (2026-08-15)**: `gold.fct_reconciliacion_bebidas_ancestral` se publica automáticamente (pestaña `reconciliacion_bebidas_ancestral`, misma Sheet de siempre) vía `src/pipeline.py` (la publicación del resto de las 29 tablas sigue pausada). `src/load/format_gsheets.py` (nuevo — usa `google-api-python-client` + `google-auth`, no DuckDB, porque formato condicional y slicers no están soportados por la extensión `gsheets`) le agrega formato condicional (gris si Diferencia=0, naranja si no) y 3 slicers (Diferencia, Producto, Semana).
+
+⚠️ **Decisión (2026-08-15): la vista en Sheets no alcanza — se pasa a Looker Studio.** El usuario probó la Sheet con slicers y la encontró difícil de usar / lejos de la experiencia de Power BI (6,653 filas en una grilla, aunque tenga filtros, no se siente como un dashboard). Se decidió conectar **Looker Studio** (gratis, de Google) directo sobre esta misma Sheet como fuente — da controles de filtro reales (rango de fechas, desplegables) y formato condicional nativo en tablas, mucho más parecido a Power BI. Es 100% trabajo manual en la UI de Looker Studio (no hay API usada); se le pasó al usuario una guía paso a paso (crear informe → conectar Sheet → tabla con las métricas → control de rango de fechas sobre `fecha_cierre` → control de lista sobre `producto` → formato condicional en `diferencia`). **Pendiente: el usuario todavía no empezó este paso.**
+
+### Preguntas abiertas (no bloquean nada, revisar cuando el usuario tenga tiempo)
+1. Confirmar los 2 fixes de bugs de Power Query de arriba (Compras Precios, Matriz_de_Relaciones omuh) son el comportamiento correcto deseado.
+2. Revisar, una vez armado el modelo final, qué tablas terminan sin usarse (ej. la rama de Copas de Vino) y limpiarlas.
+3. Fórmula de "Cortesías" en la tabla de reconciliación (hoy en 0).
+
 ✅ **Landing page construida** (proyecto hermano `../Pagina Web Ancestral/`) — HTML/CSS/JS plano, línea gráfica y logo reales del restaurante, contenido del menú real. Lista para publicar, pendiente de desplegar en AWS (S3 + CloudFront).
 
-▶️ Próximo paso: crear la cuenta de servicio de Google Cloud (Sheets API) — necesaria tanto para leer fuentes Sheets/Excel como para escribir el dashboard de Etapa 2 — y armar el paso del pipeline que publica `gold.fct_ventas_items`/`gold.dim_producto` a una Google Sheet. En paralelo sigue pendiente: crear la cuenta de AWS y publicar la landing (S3 + CloudFront).
+▶️ Próximo paso (retomar acá): guiar al usuario paso a paso por la creación del reporte en Looker Studio (ver arriba). Una vez que la tabla de bebidas de Ancestral esté bien en Looker Studio, replicar el patrón para el resto de categorías/negocios. **Importante**: el código de hoy (todas las tablas de Inventarios, formato de Sheets) todavía no está commiteado ni pusheado a GitHub — el Action de las 3am sigue corriendo la versión vieja del pipeline hasta que se suba.
 
 ---
 

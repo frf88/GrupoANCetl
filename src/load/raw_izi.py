@@ -47,3 +47,17 @@ def load_raw_items_inventario(con: duckdb.DuckDBPyConnection, path: Path) -> Non
         FROM read_json_auto('{_to_sql_path(path)}', maximum_object_size={MAX_JSON_OBJECT_SIZE})
         """
     )
+
+
+def load_raw_json_list(con: duckdb.DuckDBPyConnection, table: str, path: Path) -> None:
+    con.execute(
+        f"""
+        CREATE OR REPLACE TABLE {table} AS
+        SELECT *, now() AS _extraido_en
+        FROM read_json_auto(
+            '{_to_sql_path(path)}',
+            maximum_object_size={MAX_JSON_OBJECT_SIZE},
+            ignore_errors=true
+        )
+        """
+    )
