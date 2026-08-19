@@ -49,7 +49,29 @@ from src.transform.gold_pedidosya import (
     build_fct_ventas_omuh_pedidosya,
 )
 from src.load.publish_gsheets import publish_table, setup as setup_gsheets
-from src.transform.gold_reconciliacion import build_fct_reconciliacion_bebidas_ancestral
+from src.transform.gold_reconciliacion import (
+    build_fct_reconciliacion_bebidas_ancestral,
+    build_fct_reconciliacion_bebidas_ancestral_diario,
+)
+from src.transform.gold_reconciliacion_insumos import (
+    build_dim_promedio_peso_porcion_ancestral,
+    build_fct_consumo_insumos_ancestral_todos,
+    build_fct_reconciliacion_insumos_ancestral,
+    build_fct_reconciliacion_insumos_ancestral_diario,
+)
+from src.transform.gold_reconciliacion_omuh import (
+    build_fct_reconciliacion_bebidas_omuh,
+    build_fct_reconciliacion_bebidas_omuh_diario,
+)
+from src.transform.gold_reconciliacion_omuh_insumos import (
+    build_dim_insumo_omuh,
+    build_fct_reconciliacion_insumos_omuh,
+    build_fct_reconciliacion_insumos_omuh_diario,
+)
+from src.transform.gold_ventas_generales import (
+    build_fct_pedidosya_pedidos,
+    build_fct_ventas_diarias_negocio,
+)
 
 CONTRIBUYENTE = "79818"
 NEGOCIOS = {
@@ -74,6 +96,17 @@ SALIDAS_MERMAS_OMUH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSbk4
 INVENTARIOS_INSUMOS_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ75zxBFs61BR1asMscyYFYKIblAKmz1QXyIaOMPFophgCXeG22j-iy8GgU6Fl2tIxKkZM1YkDEj21l/pub?gid=635693128&single=true&output=csv"
 INVENTARIOS_UNITARIOS_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ75zxBFs61BR1asMscyYFYKIblAKmz1QXyIaOMPFophgCXeG22j-iy8GgU6Fl2tIxKkZM1YkDEj21l/pub?gid=614318944&single=true&output=csv"
 RELACION_COPA_VINO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxSq2o86st5D9pK6lzNuXRS5IitoiPU5739PRf8hL-lPWtFu9ypphWVP867sRfRSnSyUb8oAlUYPR_/pub?gid=1445544935&single=true&output=csv"
+REGISTRO_MESAS_ANCESTRAL_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaZ9IRZ15qOiytQNMuDiSKy0qUVcqOFZnwluHoXt6zKuIiaimaHliA_vn5Srwj5ZNp9AEIIZlS9oMM/pub?gid=0&single=true&output=csv"
+ARQUEOS_ANCESTRAL_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROEpzI8nqPR8p0INE8CKkwT5KlXie0u4t2gbIWz-pTsz7zsnPNLZvB1gbvGESPy3aBL7GVEHlkCZCH/pub?gid=0&single=true&output=csv"
+ARQUEOS_OMUH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRAwCb7ooqZruqIIEJQ_gd8qN3dwgX2vhGHQnZLqxSNvFVewECxbH-NZSHdvEuhxhErBv4i6Nfh9AWj/pub?gid=0&single=true&output=csv"
+GASTOS_CASH_ANCESTRAL_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=1321695983&single=true&output=csv"
+GASTOS_CASH_OMUH_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=1771511327&single=true&output=csv"
+GASTOS_FORTALEZA_ANCESTRAL_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=1739764255&single=true&output=csv"
+GASTOS_FORTALEZA_OMUH_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=1023712826&single=true&output=csv"
+GASTOS_BNB_ANCESTRAL_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=91400263&single=true&output=csv"
+GASTOS_BNB_OMUH_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=196109052&single=true&output=csv"
+REGISTRO_MESAS_ANCESTRAL_HISTORICO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaZ9IRZ15qOiytQNMuDiSKy0qUVcqOFZnwluHoXt6zKuIiaimaHliA_vn5Srwj5ZNp9AEIIZlS9oMM/pub?gid=371476744&single=true&output=csv"
+EXTRACTOS_URL = "https://docs.google.com/spreadsheets/d/12Mg-kRVHx4Qub7mcqDjMorEcySonh6JM/export?format=xlsx"
 
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
 
@@ -172,6 +205,50 @@ if __name__ == "__main__":
     relacion_copa_path.write_bytes(fetch_csv(RELACION_COPA_VINO_URL))
     print("relacion_copa_vino: extraida")
 
+    registro_mesas_path = RAW_DIR / "registro_mesas_ancestral.csv"
+    registro_mesas_path.write_bytes(fetch_csv(REGISTRO_MESAS_ANCESTRAL_URL))
+    print("registro_mesas_ancestral: extraida")
+
+    arqueos_ancestral_path = RAW_DIR / "arqueos_ancestral.csv"
+    arqueos_ancestral_path.write_bytes(fetch_csv(ARQUEOS_ANCESTRAL_URL))
+    print("arqueos_ancestral: extraida")
+
+    arqueos_omuh_path = RAW_DIR / "arqueos_omuh.csv"
+    arqueos_omuh_path.write_bytes(fetch_csv(ARQUEOS_OMUH_URL))
+    print("arqueos_omuh: extraida")
+
+    gastos_cash_ancestral_gs_path = RAW_DIR / "gastos_cash_ancestral_gs.csv"
+    gastos_cash_ancestral_gs_path.write_bytes(fetch_csv(GASTOS_CASH_ANCESTRAL_GS_URL))
+    print("gastos_cash_ancestral_gs: extraida")
+
+    gastos_cash_omuh_gs_path = RAW_DIR / "gastos_cash_omuh_gs.csv"
+    gastos_cash_omuh_gs_path.write_bytes(fetch_csv(GASTOS_CASH_OMUH_GS_URL))
+    print("gastos_cash_omuh_gs: extraida")
+
+    gastos_fortaleza_ancestral_gs_path = RAW_DIR / "gastos_fortaleza_ancestral_gs.csv"
+    gastos_fortaleza_ancestral_gs_path.write_bytes(fetch_csv(GASTOS_FORTALEZA_ANCESTRAL_GS_URL))
+    print("gastos_fortaleza_ancestral_gs: extraida")
+
+    gastos_fortaleza_omuh_gs_path = RAW_DIR / "gastos_fortaleza_omuh_gs.csv"
+    gastos_fortaleza_omuh_gs_path.write_bytes(fetch_csv(GASTOS_FORTALEZA_OMUH_GS_URL))
+    print("gastos_fortaleza_omuh_gs: extraida")
+
+    gastos_bnb_ancestral_gs_path = RAW_DIR / "gastos_bnb_ancestral_gs.csv"
+    gastos_bnb_ancestral_gs_path.write_bytes(fetch_csv(GASTOS_BNB_ANCESTRAL_GS_URL))
+    print("gastos_bnb_ancestral_gs: extraida")
+
+    gastos_bnb_omuh_gs_path = RAW_DIR / "gastos_bnb_omuh_gs.csv"
+    gastos_bnb_omuh_gs_path.write_bytes(fetch_csv(GASTOS_BNB_OMUH_GS_URL))
+    print("gastos_bnb_omuh_gs: extraida")
+
+    registro_mesas_historico_path = RAW_DIR / "registro_mesas_ancestral_historico.csv"
+    registro_mesas_historico_path.write_bytes(fetch_csv(REGISTRO_MESAS_ANCESTRAL_HISTORICO_URL))
+    print("registro_mesas_ancestral_historico: extraida")
+
+    extractos_path = RAW_DIR / "extractos.xlsx"
+    extractos_path.write_bytes(fetch_bytes(EXTRACTOS_URL))
+    print("extractos: extraida")
+
     con = connect()
     load_raw_facturas(con, factura_files)
     load_raw_items_inventario(con, items_path)
@@ -192,6 +269,22 @@ if __name__ == "__main__":
     load_raw_csv(con, "raw.inventarios_insumos_gs", inv_insumos_gs_path)
     load_raw_csv(con, "raw.inventarios_unitarios_gs", inv_unit_gs_path)
     load_raw_csv(con, "raw.relacion_copa_vino", relacion_copa_path, skip=1)
+    load_raw_csv(con, "raw.registro_mesas_ancestral", registro_mesas_path)
+    load_raw_csv(con, "raw.arqueos_ancestral", arqueos_ancestral_path)
+    load_raw_csv(con, "raw.arqueos_omuh", arqueos_omuh_path, skip=1)
+    load_raw_csv(con, "raw.gastos_cash_ancestral_gs", gastos_cash_ancestral_gs_path)
+    load_raw_csv(con, "raw.gastos_cash_omuh_gs", gastos_cash_omuh_gs_path)
+    load_raw_csv(con, "raw.gastos_fortaleza_ancestral_gs", gastos_fortaleza_ancestral_gs_path)
+    load_raw_csv(con, "raw.gastos_fortaleza_omuh_gs", gastos_fortaleza_omuh_gs_path)
+    load_raw_csv(con, "raw.gastos_bnb_ancestral_gs", gastos_bnb_ancestral_gs_path)
+    load_raw_csv(con, "raw.gastos_bnb_omuh_gs", gastos_bnb_omuh_gs_path)
+    load_raw_csv(con, "raw.registro_mesas_ancestral_historico", registro_mesas_historico_path)
+    load_raw_xlsx_sheet(con, "raw.gastos_bisa_ancestral", extractos_path, "Cuenta")
+    load_raw_xlsx_sheet(con, "raw.gastos_bisa_explora", extractos_path, "Cuenta Explora")
+    load_raw_xlsx_sheet(con, "raw.gastos_caja_ancestral", extractos_path, "Pagos Caja")
+    load_raw_xlsx_sheet(con, "raw.gastos_caja_omuh", extractos_path, "Pagos Caja omuh")
+    load_raw_xlsx_sheet(con, "raw.gastos_bcp_omuh", extractos_path, "Cuenta BCP omuh")
+    load_raw_xlsx_sheet(con, "raw.gastos_bcp_bodas", extractos_path, "Cuenta BCP Boda")
     print(
         "Capa raw cargada: raw.izi_facturas, raw.izi_items_inventario, "
         "raw.matriz_relaciones_ancestral, raw.salidas_mermas_ancestral, "
@@ -201,7 +294,14 @@ if __name__ == "__main__":
         "raw.inventarios_unitarios_omuh, raw.apertura_vinos_copa, "
         "raw.salidas_mermas_omuh, raw.izi_movimientos, raw.pedidosya_ventas_extras, "
         "raw.inventarios_insumos_gs, raw.inventarios_unitarios_gs, "
-        "raw.relacion_copa_vino"
+        "raw.relacion_copa_vino, raw.registro_mesas_ancestral, "
+        "raw.arqueos_ancestral, raw.arqueos_omuh, "
+        "raw.gastos_cash_ancestral_gs, raw.gastos_cash_omuh_gs, "
+        "raw.gastos_fortaleza_ancestral_gs, raw.gastos_fortaleza_omuh_gs, "
+        "raw.gastos_bnb_ancestral_gs, raw.gastos_bnb_omuh_gs, "
+        "raw.registro_mesas_ancestral_historico, raw.gastos_bisa_ancestral, "
+        "raw.gastos_bisa_explora, raw.gastos_caja_ancestral, "
+        "raw.gastos_caja_omuh, raw.gastos_bcp_omuh, raw.gastos_bcp_bodas"
     )
 
     build_fct_ventas_items(con)
@@ -233,6 +333,18 @@ if __name__ == "__main__":
     build_dim_relacion_copa_vino(con)
     build_fct_copas_vino_ancestral(con)
     build_fct_reconciliacion_bebidas_ancestral(con)
+    build_fct_reconciliacion_bebidas_ancestral_diario(con)
+    build_dim_promedio_peso_porcion_ancestral(con)
+    build_fct_consumo_insumos_ancestral_todos(con)
+    build_fct_reconciliacion_insumos_ancestral(con)
+    build_fct_reconciliacion_insumos_ancestral_diario(con)
+    build_fct_reconciliacion_bebidas_omuh(con)
+    build_fct_reconciliacion_bebidas_omuh_diario(con)
+    build_dim_insumo_omuh(con)
+    build_fct_reconciliacion_insumos_omuh(con)
+    build_fct_reconciliacion_insumos_omuh_diario(con)
+    build_fct_pedidosya_pedidos(con)
+    build_fct_ventas_diarias_negocio(con)
     print(
         "Capa gold construida: gold.fct_ventas_items, gold.dim_producto, "
         "gold.fct_movimiento_inventario, gold.dim_receta_ancestral, "

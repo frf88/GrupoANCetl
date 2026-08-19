@@ -15,3 +15,6 @@ credentials/
 
 # Data (contiene información financiera sensible)
 data/
+
+# Logs de runtime
+metabase/*.log
