@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@400;500;600&family=Schoolbell&family=Baloo+2:wght@400;500;600;700&display=swap');
+
+:root {
+  --anc-terracota: #CF7E55;
+  --anc-carbon: #3F3F3F;
+  --anc-azul: #282E3C;
+  --anc-crema: #FAF6F1;
+  --anc-crema-dim: #F1EAE1;
+  --anc-blanco: #FFFFFF;
+}
+
+body {
+  background: var(--anc-crema);
+  font-family: 'Jost', sans-serif;
+  color: var(--anc-carbon);
+  margin: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--anc-azul);
+  margin: 0;
+}
+
+.filtro-label {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+  font-size: 13px;
+  color: var(--anc-carbon);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Dropdown de Dash */
+.Select-control {
+  border: 1px solid var(--anc-crema-dim) !important;
+  border-radius: 4px !important;
+  font-family: 'Jost', sans-serif !important;
+}
+.is-focused > .Select-control {
+  border-color: var(--anc-terracota) !important;
+  box-shadow: none !important;
+}
+.VirtualizedSelectOption.VirtualizedSelectFocusedOption {
+  background: var(--anc-crema-dim) !important;
+}
+
+/* Checklist */
+input[type="checkbox"] {
+  accent-color: var(--anc-terracota);
+}
+
+/* DataTable */
+.dash-spreadsheet-container .dash-spreadsheet-inner table {
+  font-family: 'Jost', sans-serif !important;
+}
