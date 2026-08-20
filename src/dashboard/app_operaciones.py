@@ -1,10 +1,7 @@
-import hmac
-import os
-
 from dash import Dash, Input, Output, dcc, html
-from flask import Response, request
 
-from src.dashboard import reconciliacion_tab, resumen_tab, tabbed_page, ventas_tab
+from src.dashboard import reconciliacion_tab, resumen_tab, tabbed_page
+from src.dashboard.auth import require_basic_auth
 from src.dashboard.data import (
     BEBIDAS_DAILY_TITLES,
     BEBIDAS_WEEKLY_TITLES,
@@ -23,7 +20,6 @@ insumos_weekly, insumos_daily, insumos_ventas = data["insumos"]
 resumen_df = data["resumen"]
 om_bebidas_weekly, om_bebidas_daily, om_bebidas_ventas = data["omuh_bebidas"]
 om_insumos_weekly, om_insumos_daily, om_insumos_ventas = data["omuh_insumos"]
-ventas_df = data["ventas"]
 
 # la ultima semana con cierre real (diferencia IS NOT NULL) de Bebidas marca
 # el ritmo de conteo fisico de todas las areas de cada negocio por igual
@@ -32,24 +28,9 @@ ULTIMA_SEMANA_COMPLETA_ANCESTRAL = semanas_bebidas[-1] if semanas_bebidas else N
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
-app.title = "Grupo ANC — Control de Inventario"
+app.title = "Grupo ANC — Operaciones"
 
-DASHBOARD_USER = os.environ["DASHBOARD_USER"]
-DASHBOARD_PASSWORD = os.environ["DASHBOARD_PASSWORD"]
-
-
-@server.before_request
-def require_auth():
-    auth = request.authorization
-    valid = (
-        auth is not None
-        and hmac.compare_digest(auth.username, DASHBOARD_USER)
-        and hmac.compare_digest(auth.password, DASHBOARD_PASSWORD)
-    )
-    if not valid:
-        return Response(
-            "Login requerido", 401, {"WWW-Authenticate": 'Basic realm="Dashboard"'}
-        )
+require_basic_auth(server)
 
 NAV_STYLE = {"background": "#111111", "padding": "10px 32px", "display": "flex", "gap": "24px"}
 NAV_LINK_STYLE = {
@@ -103,14 +84,10 @@ omuh_layout = tabbed_page.build(
 reconciliacion_tab.register_callbacks(app, "ombebidas", om_bebidas_weekly, om_bebidas_daily, om_bebidas_ventas, OMUH)
 reconciliacion_tab.register_callbacks(app, "ominsumos", om_insumos_weekly, om_insumos_daily, om_insumos_ventas, OMUH)
 
-ventas_layout = ventas_tab.build_layout(ventas_df)
-ventas_tab.register_callbacks(app, ventas_df)
-
 # path, id-suffix, nav label, layout
 PAGES = [
     ("/", "ancestral", "Ancestral", ancestral_layout),
     ("/omuh", "omuh", "omuH", omuh_layout),
-    ("/ventas", "ventas", "Ventas", ventas_layout),
 ]
 
 app.layout = html.Div(
