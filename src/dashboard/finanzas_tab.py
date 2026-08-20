@@ -104,6 +104,12 @@ def register_callbacks(app, estados_df, theme):
 
         df_anio = estados_df[(estados_df["periodo"].dt.year == anio) & (estados_df["negocio"] == (negocio or "Todos"))]
         meses_presentes = sorted(df_anio["periodo"].dt.month.unique())
+        # no mostrar meses futuros con datos adelantados/parciales (ej. un
+        # adelanto de boda cobrado con meses de anticipacion) - solo aplica
+        # al anio en curso, los anios pasados muestran todos sus meses
+        hoy = date.today()
+        if anio == hoy.year:
+            meses_presentes = [m for m in meses_presentes if m <= hoy.month]
         lineas = df_anio[["orden", "categoria", "calculos_eerr"]].drop_duplicates().sort_values("orden")
 
         columns = [{"name": "Línea", "id": "categoria"}]
@@ -137,6 +143,7 @@ def register_callbacks(app, estados_df, theme):
                     for col in month_ids + ["total"]:
                         if target.get(col) is not None:
                             target[col] = round(target[col] - (socios.get(col) or 0))
+            rows = [r for r in rows if r["categoria"] != "Salarios Socios"]
 
         # anchos explicitos: "Linea" fija, las columnas de mes+total se
         # reparten el resto del ancho en partes iguales - sin esto la
