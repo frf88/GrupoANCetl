@@ -92,8 +92,6 @@ def build_layout(estados_df, theme):
                     "minWidth": "100%",
                 },
                 page_action="none",
-                fixed_rows={"headers": True},
-                fixed_columns={"headers": True, "data": 1},
             ),
         ],
     )
