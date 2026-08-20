@@ -9,6 +9,7 @@ from src.extract.http import fetch_bytes
 from src.extract.izi import fetch_facturas, fetch_items_inventario, fetch_movimientos, login
 from src.load.duckdb_load import connect
 from src.load.raw_csv import load_raw_csv
+from src.load.raw_gastos_aproximados import load_raw_gastos_aproximados
 from src.load.raw_izi import load_raw_facturas, load_raw_items_inventario, load_raw_json_list
 from src.load.raw_xlsx import load_raw_xlsx_sheet
 from src.transform.gold_izi import (
@@ -49,6 +50,9 @@ from src.transform.gold_pedidosya import (
     build_fct_ventas_omuh_pedidosya,
 )
 from src.load.publish_gsheets import publish_table, setup as setup_gsheets
+from src.transform.gold_estados_resultados import build_dim_orden_eerr, build_fct_estados_resultados
+from src.transform.gold_gastos_compilados import build_fct_gastos_compilados
+from src.transform.gold_ingresos_compilados import build_fct_ingresos_compilados
 from src.transform.gold_reconciliacion import (
     build_fct_reconciliacion_bebidas_ancestral,
     build_fct_reconciliacion_bebidas_ancestral_diario,
@@ -107,6 +111,12 @@ GASTOS_BNB_ANCESTRAL_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1v
 GASTOS_BNB_OMUH_GS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vStBGi91QeGekPEACLMc56IMwTny2H3sFJvxnDvGIk_8w_DfsOxS6Z1guH_T0ZtXIRTjQlpiELk8L2v/pub?gid=196109052&single=true&output=csv"
 REGISTRO_MESAS_ANCESTRAL_HISTORICO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaZ9IRZ15qOiytQNMuDiSKy0qUVcqOFZnwluHoXt6zKuIiaimaHliA_vn5Srwj5ZNp9AEIIZlS9oMM/pub?gid=371476744&single=true&output=csv"
 EXTRACTOS_URL = "https://docs.google.com/spreadsheets/d/12Mg-kRVHx4Qub7mcqDjMorEcySonh6JM/export?format=xlsx"
+GASTOS_APROXIMADOS_URL = "https://docs.google.com/spreadsheets/d/1XD0pzl8U7LIiCjzTlnEwJMutw2XhX-Iw/export?format=xlsx"
+VENTAS_GS_EVENTOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaZ9IRZ15qOiytQNMuDiSKy0qUVcqOFZnwluHoXt6zKuIiaimaHliA_vn5Srwj5ZNp9AEIIZlS9oMM/pub?gid=1106448622&single=true&output=csv"
+VENTAS_GS_DELIVERY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSSkopqU6qiwU4e1RVEgKJis6_J-usy4-IVsFq2vMXCGQFTLWEeo4hITKw7Rn2CruG7_lkaS37-6B6p/pub?output=csv"
+INGRESOS_EVENTOS_BODAS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKBff5AxA3WV4wDBUQnAxu4WNcK-vCUbFkFp6pEa3kV-1WFjvmXyKqAqqz9by5GRaMeK7rIC0nQ59R/pub?gid=0&single=true&output=csv"
+FAC_VENTAS_OMUH_ODOO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAK8Lhlitl-WtdoS6kudw764QelRpp57zDyq-QoiHRjzFSMVVthSje-vxMJGTIkg/pub?output=xlsx"
+VENTAS_OMUH_EVENTOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQaZ9IRZ15qOiytQNMuDiSKy0qUVcqOFZnwluHoXt6zKuIiaimaHliA_vn5Srwj5ZNp9AEIIZlS9oMM/pub?gid=295776460&single=true&output=csv"
 
 RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
 
@@ -249,6 +259,30 @@ if __name__ == "__main__":
     extractos_path.write_bytes(fetch_bytes(EXTRACTOS_URL))
     print("extractos: extraida")
 
+    gastos_aproximados_path = RAW_DIR / "gastos_aproximados.xlsx"
+    gastos_aproximados_path.write_bytes(fetch_bytes(GASTOS_APROXIMADOS_URL))
+    print("gastos_aproximados: extraida")
+
+    ventas_gs_eventos_path = RAW_DIR / "ventas_gs_eventos.csv"
+    ventas_gs_eventos_path.write_bytes(fetch_csv(VENTAS_GS_EVENTOS_URL))
+    print("ventas_gs_eventos: extraida")
+
+    ventas_gs_delivery_path = RAW_DIR / "ventas_gs_delivery.csv"
+    ventas_gs_delivery_path.write_bytes(fetch_csv(VENTAS_GS_DELIVERY_URL))
+    print("ventas_gs_delivery: extraida")
+
+    ingresos_eventos_bodas_path = RAW_DIR / "ingresos_eventos_bodas.csv"
+    ingresos_eventos_bodas_path.write_bytes(fetch_csv(INGRESOS_EVENTOS_BODAS_URL))
+    print("ingresos_eventos_bodas: extraida")
+
+    fac_ventas_omuh_odoo_path = RAW_DIR / "fac_ventas_omuh_odoo.xlsx"
+    fac_ventas_omuh_odoo_path.write_bytes(fetch_bytes(FAC_VENTAS_OMUH_ODOO_URL))
+    print("fac_ventas_omuh_odoo: extraida")
+
+    ventas_omuh_eventos_path = RAW_DIR / "ventas_omuh_eventos.csv"
+    ventas_omuh_eventos_path.write_bytes(fetch_csv(VENTAS_OMUH_EVENTOS_URL))
+    print("ventas_omuh_eventos: extraida")
+
     con = connect()
     load_raw_facturas(con, factura_files)
     load_raw_items_inventario(con, items_path)
@@ -285,6 +319,13 @@ if __name__ == "__main__":
     load_raw_xlsx_sheet(con, "raw.gastos_caja_omuh", extractos_path, "Pagos Caja omuh")
     load_raw_xlsx_sheet(con, "raw.gastos_bcp_omuh", extractos_path, "Cuenta BCP omuh")
     load_raw_xlsx_sheet(con, "raw.gastos_bcp_bodas", extractos_path, "Cuenta BCP Boda")
+    load_raw_gastos_aproximados(con, "raw.gastos_aproximados", gastos_aproximados_path)
+    load_raw_xlsx_sheet(con, "raw.gastos_us_ancestral", extractos_path, "Pagos $us")
+    load_raw_csv(con, "raw.ingresos_ventas_gs_eventos", ventas_gs_eventos_path)
+    load_raw_csv(con, "raw.ingresos_ventas_gs_delivery", ventas_gs_delivery_path)
+    load_raw_csv(con, "raw.ingresos_eventos_bodas", ingresos_eventos_bodas_path)
+    load_raw_xlsx_sheet(con, "raw.ingresos_fac_ventas_omuh_odoo", fac_ventas_omuh_odoo_path, "fac_ventas_detalle")
+    load_raw_csv(con, "raw.ingresos_ventas_omuh_eventos", ventas_omuh_eventos_path)
     print(
         "Capa raw cargada: raw.izi_facturas, raw.izi_items_inventario, "
         "raw.matriz_relaciones_ancestral, raw.salidas_mermas_ancestral, "
@@ -345,6 +386,10 @@ if __name__ == "__main__":
     build_fct_reconciliacion_insumos_omuh_diario(con)
     build_fct_pedidosya_pedidos(con)
     build_fct_ventas_diarias_negocio(con)
+    build_fct_gastos_compilados(con)
+    build_fct_ingresos_compilados(con)
+    build_dim_orden_eerr(con)
+    build_fct_estados_resultados(con)
     print(
         "Capa gold construida: gold.fct_ventas_items, gold.dim_producto, "
         "gold.fct_movimiento_inventario, gold.dim_receta_ancestral, "
