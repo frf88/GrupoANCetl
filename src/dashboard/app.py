@@ -1,4 +1,8 @@
+import hmac
+import os
+
 from dash import Dash, Input, Output, dcc, html
+from flask import Response, request
 
 from src.dashboard import reconciliacion_tab, resumen_tab, tabbed_page, ventas_tab
 from src.dashboard.data import (
@@ -29,6 +33,23 @@ ULTIMA_SEMANA_COMPLETA_ANCESTRAL = semanas_bebidas[-1] if semanas_bebidas else N
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
 app.title = "Grupo ANC — Control de Inventario"
+
+DASHBOARD_USER = os.environ["DASHBOARD_USER"]
+DASHBOARD_PASSWORD = os.environ["DASHBOARD_PASSWORD"]
+
+
+@server.before_request
+def require_auth():
+    auth = request.authorization
+    valid = (
+        auth is not None
+        and hmac.compare_digest(auth.username, DASHBOARD_USER)
+        and hmac.compare_digest(auth.password, DASHBOARD_PASSWORD)
+    )
+    if not valid:
+        return Response(
+            "Login requerido", 401, {"WWW-Authenticate": 'Basic realm="Dashboard"'}
+        )
 
 NAV_STYLE = {"background": "#111111", "padding": "10px 32px", "display": "flex", "gap": "24px"}
 NAV_LINK_STYLE = {
