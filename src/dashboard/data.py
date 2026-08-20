@@ -411,9 +411,9 @@ def load_estados_resultados(con):
     # las filas de subtotal (calculos_eerr=1).
     return con.execute(
         """
-        SELECT periodo, orden, grupo_eerr, categoria, calculos_eerr, monto
+        SELECT periodo, negocio, orden, grupo_eerr, categoria, calculos_eerr, monto
         FROM gold.fct_estados_resultados
-        ORDER BY periodo, orden
+        ORDER BY periodo, negocio, orden
         """
     ).df()
 

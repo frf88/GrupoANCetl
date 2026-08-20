@@ -12,6 +12,11 @@ MESES_ABREV = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "O
 NEGATIVO_FG = "#8A4A24"
 POSITIVO_FG = "#1F6B3A"
 
+# Subtotales que se ven afectados si se excluye "Salarios Socios" del
+# calculo (todo lo que va DESPUES de esa linea en el orden del EERR;
+# Margen Bruto queda antes, no se toca).
+SUBTOTALES_AFECTADOS = ("EBITDA", "Resultado", "Resultado Total")
+
 
 def _mes_col(mes):
     return f"m{mes:02d}"
@@ -22,8 +27,11 @@ def build_layout(estados_df, theme):
     anio_actual = date.today().year
     default_anio = anio_actual if anio_actual in anios else (anios[0] if anios else None)
 
+    negocios = sorted(n for n in estados_df["negocio"].unique() if n != "Todos")
+    negocio_options = [{"label": "Todos", "value": "Todos"}] + [{"label": n, "value": n} for n in negocios]
+
     return html.Div(
-        style={"maxWidth": "1100px", "margin": "0 auto", "padding": "24px 32px 48px"},
+        style={"width": "100%", "padding": "24px 32px 48px", "boxSizing": "border-box"},
         children=[
             html.Div(
                 style=theme.filter_style,
@@ -40,6 +48,29 @@ def build_layout(estados_df, theme):
                             ),
                         ]
                     ),
+                    html.Div(
+                        [
+                            html.Label("Negocio", className="filtro-label"),
+                            dcc.Dropdown(
+                                id="finanzas-f-negocio",
+                                options=negocio_options,
+                                value="Todos",
+                                clearable=False,
+                                style={"width": "180px"},
+                            ),
+                        ]
+                    ),
+                    html.Div(
+                        [
+                            dcc.Checklist(
+                                id="finanzas-f-sin-socios",
+                                options=[{"label": " Excluir Salarios Socios del resultado", "value": "excluir"}],
+                                value=[],
+                                style={"fontFamily": theme.font_body, "fontSize": "13px", "color": theme.carbon},
+                            ),
+                        ],
+                        style={"marginBottom": "2px"},
+                    ),
                 ],
             ),
             html.H4("Estado de Resultados", style=theme.section_title_style),
@@ -47,7 +78,7 @@ def build_layout(estados_df, theme):
                 id="finanzas-tabla",
                 style_header=theme.table_style_header,
                 style_cell=theme.table_style_cell,
-                style_table=theme.table_style_table,
+                style_table={**theme.table_style_table, "overflowX": "auto"},
                 page_action="none",
                 fixed_rows={"headers": True},
                 fixed_columns={"headers": True, "data": 1},
@@ -63,12 +94,15 @@ def register_callbacks(app, estados_df, theme):
         Output("finanzas-tabla", "style_cell_conditional"),
         Output("finanzas-tabla", "style_data_conditional"),
         Input("finanzas-f-anio", "value"),
+        Input("finanzas-f-negocio", "value"),
+        Input("finanzas-f-sin-socios", "value"),
     )
-    def actualizar(anio):
+    def actualizar(anio, negocio, sin_socios_flags):
         if anio is None:
             return [], [], [], []
+        excluir_socios = "excluir" in (sin_socios_flags or [])
 
-        df_anio = estados_df[estados_df["periodo"].dt.year == anio]
+        df_anio = estados_df[(estados_df["periodo"].dt.year == anio) & (estados_df["negocio"] == (negocio or "Todos"))]
         meses_presentes = sorted(df_anio["periodo"].dt.month.unique())
         lineas = df_anio[["orden", "categoria", "calculos_eerr"]].drop_duplicates().sort_values("orden")
 
@@ -79,6 +113,8 @@ def register_callbacks(app, estados_df, theme):
             )
         columns.append({"name": "Total Año", "id": "total", "type": "numeric", "format": NUMBER_FORMAT})
 
+        month_ids = [_mes_col(m) for m in meses_presentes]
+        rows_by_categoria = {}
         rows = []
         for _, linea in lineas.iterrows():
             sub = df_anio[df_anio["orden"] == linea["orden"]]
@@ -86,16 +122,22 @@ def register_callbacks(app, estados_df, theme):
             total = 0.0
             for m in meses_presentes:
                 valores = sub[sub["periodo"].dt.month == m]["monto"]
-                if len(valores):
-                    v = round(float(valores.iloc[0]))
-                    row[_mes_col(m)] = v
-                    total += v
-                else:
-                    row[_mes_col(m)] = None
+                v = round(float(valores.iloc[0])) if len(valores) else None
+                row[_mes_col(m)] = v
+                total += v or 0
             row["total"] = round(total)
             rows.append(row)
+            rows_by_categoria[linea["categoria"]] = row
 
-        month_ids = [_mes_col(m) for m in meses_presentes]
+        if excluir_socios and "Salarios Socios" in rows_by_categoria:
+            socios = rows_by_categoria["Salarios Socios"]
+            for categoria in SUBTOTALES_AFECTADOS:
+                if categoria in rows_by_categoria:
+                    target = rows_by_categoria[categoria]
+                    for col in month_ids + ["total"]:
+                        if target.get(col) is not None:
+                            target[col] = round(target[col] - (socios.get(col) or 0))
+
         style_cell_conditional = [
             {"if": {"column_id": c}, "textAlign": "right"} for c in (month_ids + ["total"])
         ] + [{"if": {"column_id": "categoria"}, "minWidth": "180px"}]

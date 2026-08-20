@@ -43,56 +43,83 @@ def build_dim_orden_eerr(con: duckdb.DuckDBPyConnection) -> None:
 def build_fct_estados_resultados(con: duckdb.DuckDBPyConnection) -> None:
     # Replica la medida DAX "Monto EERR": combina gastos (negados) +
     # ingresos (Categoria="Ingresos" fijo, igual que "Ingresos Compilados
-    # new"), agrega por mes x categoria, y aplica el acumulado de
-    # subtotal via SUM() OVER (mismo idioma de ventana que
+    # new"), agrega por mes x categoria x negocio, y aplica el acumulado
+    # de subtotal via SUM() OVER (mismo idioma de ventana que
     # gold_reconciliacion.build_fct_reconciliacion_bebidas_ancestral_diario).
     # Se excluye Categoria="Dividendos" igual que "Ingresos y Gastos
     # Compilados" en el Power BI real.
+    #
+    # "negocio" agrega una dimension que el Power BI original NO tiene
+    # como vista separada (el P&L real es uno solo, combinado) pero SI
+    # tiene disponible como columna en Gastos/Ingresos Compilados
+    # (Empresa/Negocio) - se expone aca para poder filtrar el dashboard
+    # por negocio sin inventar una categorizacion nueva. 'Todos' replica
+    # exacto el P&L combinado original (ya validado contra Power BI).
+    # El valor 'omuh' en la fuente de gastos viene con variantes de
+    # mayuscula/espacio ("omuh", "omuh ", "Omuh") por como se cargo a
+    # mano en el Google Sheet original - se normaliza SOLO para poder
+    # agruparlas como el mismo negocio (TRIM+LOWER), sin tocar ningun
+    # monto ni fecha.
     con.execute(
         """
         CREATE OR REPLACE TABLE gold.fct_estados_resultados AS
         WITH combinado AS (
-            SELECT fecha, categoria, bs * -1 AS bs
+            SELECT fecha, categoria, bs * -1 AS bs, empresa AS negocio_raw
             FROM gold.fct_gastos_compilados
             UNION ALL
-            SELECT fecha, 'Ingresos' AS categoria, total AS bs
+            SELECT fecha, 'Ingresos' AS categoria, total AS bs, negocio AS negocio_raw
             FROM gold.fct_ingresos_compilados
+        ),
+        normalizado AS (
+            SELECT
+                fecha, categoria, bs,
+                CASE
+                    WHEN LOWER(TRIM(negocio_raw)) = 'omuh' THEN 'omuh'
+                    WHEN LOWER(TRIM(negocio_raw)) = 'ancestral' THEN 'Ancestral'
+                    ELSE TRIM(negocio_raw)
+                END AS negocio
+            FROM combinado
+            WHERE categoria <> 'Dividendos'
+        ),
+        con_todos AS (
+            SELECT fecha, categoria, bs, negocio FROM normalizado
+            UNION ALL
+            SELECT fecha, categoria, bs, 'Todos' AS negocio FROM normalizado
         ),
         monthly_categoria AS (
             SELECT
                 date_trunc('month', fecha)::DATE AS periodo,
-                categoria,
+                categoria, negocio,
                 SUM(bs) AS monto
-            FROM combinado
-            WHERE categoria <> 'Dividendos'
-            GROUP BY date_trunc('month', fecha)::DATE, categoria
+            FROM con_todos
+            GROUP BY date_trunc('month', fecha)::DATE, categoria, negocio
         ),
-        periodos AS (
-            SELECT DISTINCT periodo FROM monthly_categoria
+        periodos_negocios AS (
+            SELECT DISTINCT periodo, negocio FROM monthly_categoria
         ),
         grid AS (
-            SELECT p.periodo, d.grupo_eerr, d.orden_grupo, d.categoria, d.calculos_eerr, d.orden
-            FROM periodos p
+            SELECT pn.periodo, pn.negocio, d.grupo_eerr, d.orden_grupo, d.categoria, d.calculos_eerr, d.orden
+            FROM periodos_negocios pn
             CROSS JOIN gold.dim_orden_eerr d
         ),
         con_monto_directo AS (
             SELECT
-                g.periodo, g.orden, g.grupo_eerr, g.categoria, g.calculos_eerr,
+                g.periodo, g.negocio, g.orden, g.grupo_eerr, g.categoria, g.calculos_eerr,
                 COALESCE(m.monto, 0) AS monto_directo
             FROM grid g
             LEFT JOIN monthly_categoria m
-                ON m.periodo = g.periodo AND m.categoria = g.categoria
+                ON m.periodo = g.periodo AND m.categoria = g.categoria AND m.negocio = g.negocio
         )
         SELECT
-            periodo, orden, grupo_eerr, categoria, calculos_eerr,
+            periodo, negocio, orden, grupo_eerr, categoria, calculos_eerr,
             CASE
                 WHEN calculos_eerr = 0 THEN monto_directo
                 ELSE SUM(monto_directo) OVER (
-                    PARTITION BY periodo ORDER BY orden
+                    PARTITION BY periodo, negocio ORDER BY orden
                     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                 )
             END AS monto
         FROM con_monto_directo
-        ORDER BY periodo, orden
+        ORDER BY periodo, negocio, orden
         """
     )
