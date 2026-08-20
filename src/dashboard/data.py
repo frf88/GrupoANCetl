@@ -404,6 +404,20 @@ def load_ventas(con):
     ).df()
 
 
+def load_estados_resultados(con):
+    # gold.fct_estados_resultados: el P&L mensual replicado del Power BI
+    # "Estados de Resultados Ancestralrest S.R.L v2" (ver memoria
+    # estados-resultados-pnl). "monto" ya trae el acumulado aplicado en
+    # las filas de subtotal (calculos_eerr=1).
+    return con.execute(
+        """
+        SELECT periodo, orden, grupo_eerr, categoria, calculos_eerr, monto
+        FROM gold.fct_estados_resultados
+        ORDER BY periodo, orden
+        """
+    ).df()
+
+
 def load_all():
     con = _connect()
     try:
@@ -416,5 +430,13 @@ def load_all():
             "omuh_insumos": load_omuh_insumos(con),
             "ventas": load_ventas(con),
         }
+    finally:
+        con.close()
+
+
+def load_finanzas():
+    con = _connect()
+    try:
+        return {"estados_resultados": load_estados_resultados(con)}
     finally:
         con.close()
