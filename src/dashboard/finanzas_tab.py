@@ -162,14 +162,27 @@ def register_callbacks(app, estados_df, theme):
         categoria_width = "220px"
         n_flex = len(month_ids) + 1
         flex_width = f"calc((100% - {categoria_width}) / {n_flex})"
+        # lineas verticales entre columnas: 1px para separar meses, mas
+        # marcada (2px) antes de Total Año para distinguirla. style_cell_
+        # conditional aplica tanto al header como a las celdas de datos,
+        # asi que el encabezado queda alineado igual que su columna
+        # (Linea a la izquierda, metricas al centro) sin definirlo aparte.
         style_cell_conditional = [
-            {"if": {"column_id": c}, "textAlign": "right", "width": flex_width, "minWidth": "70px"}
+            {"if": {"column_id": "categoria"}, "textAlign": "left", "width": categoria_width, "minWidth": categoria_width},
+        ] + [
+            {
+                "if": {"column_id": c},
+                "textAlign": "center",
+                "width": flex_width,
+                "minWidth": "70px",
+                "borderLeft": f"2px solid {theme.cream_dim}" if c == "total" else f"1px solid {theme.cream_dim}",
+            }
             for c in (month_ids + ["total"])
-        ] + [{"if": {"column_id": "categoria"}, "width": categoria_width, "minWidth": categoria_width}]
+        ]
         style_data_conditional = [
             {"if": {"row_index": "odd"}, "backgroundColor": theme.cream},
             {"if": {"filter_query": "{calculos_eerr} = 1"}, "backgroundColor": theme.cream_dim, "fontWeight": "700"},
-            {"if": {"column_id": "total"}, "fontWeight": "700", "borderLeft": f"2px solid {theme.cream_dim}"},
+            {"if": {"column_id": "total"}, "fontWeight": "700"},
         ]
         for c in month_ids + ["total"]:
             style_data_conditional.append({"if": {"filter_query": f"{{{c}}} < 0", "column_id": c}, "color": NEGATIVO_FG})
