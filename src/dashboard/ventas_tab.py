@@ -1,6 +1,9 @@
+from datetime import date
+
 import pandas as pd
 from dash import Input, Output, dash_table, dcc, html
 
+from src.dashboard.data import NUMBER_FORMAT
 from src.dashboard.theme import GENERAL as theme
 
 # Dimensiones disponibles para filas/columnas. Turno y Canal existen en el
@@ -63,7 +66,8 @@ def _pivot(df, row_dims, col_dim, metric_label):
 
 
 def build_layout(ventas_df):
-    fecha_min, fecha_max = ventas_df["fecha"].min(), ventas_df["fecha"].max()
+    fecha_min = ventas_df["fecha"].min()
+    hoy = date.today()
     categoria_options = sorted(ventas_df["categoria"].unique())
     producto_options = sorted(ventas_df["producto"].unique())
     semana_options = sorted(ventas_df["semana_anio"].unique())
@@ -81,9 +85,9 @@ def build_layout(ventas_df):
                     dcc.DatePickerRange(
                         id="ventas-f-fechas",
                         min_date_allowed=fecha_min,
-                        max_date_allowed=fecha_max,
+                        max_date_allowed=hoy,
                         start_date=fecha_min,
-                        end_date=fecha_max,
+                        end_date=hoy,
                         display_format="D/M/YYYY",
                         style={"marginBottom": "16px"},
                     ),
@@ -187,7 +191,9 @@ def register_callbacks(app, ventas_df):
         titulo = f"{metrica} según {', '.join(row_labels)}"
 
         columns = [
-            {"name": c, "id": c, "type": "numeric"} if pd.api.types.is_numeric_dtype(pivot[c]) else {"name": c, "id": c}
+            {"name": c, "id": c, "type": "numeric", "format": NUMBER_FORMAT}
+            if pd.api.types.is_numeric_dtype(pivot[c])
+            else {"name": c, "id": c}
             for c in pivot.columns
         ]
         style_cell_conditional = [

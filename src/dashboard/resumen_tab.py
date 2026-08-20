@@ -1,5 +1,6 @@
 from dash import Input, Output, dash_table, dcc, html
 
+from src.dashboard.data import NUMBER_FORMAT
 from src.dashboard.theme import DIFERENCIA_BG, DIFERENCIA_FG
 
 TITLES = {"area": "Área", "producto": "Producto", "semana": "Semana", "diferencia": "Diferencia"}
@@ -42,7 +43,12 @@ def build_layout(resumen_df, ultima_semana_completa, theme):
             ),
             dash_table.DataTable(
                 id="resumen-tabla",
-                columns=[{"name": TITLES[c], "id": c} for c in ("area", "producto", "semana", "diferencia")],
+                columns=[
+                    {"name": TITLES[c], "id": c, "type": "numeric", "format": NUMBER_FORMAT}
+                    if c == "diferencia"
+                    else {"name": TITLES[c], "id": c}
+                    for c in ("area", "producto", "semana", "diferencia")
+                ],
                 style_header=theme.table_style_header,
                 style_cell=theme.table_style_cell,
                 style_table=theme.table_style_table,

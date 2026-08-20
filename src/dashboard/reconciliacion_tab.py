@@ -1,18 +1,33 @@
 import pandas as pd
 from dash import Input, Output, State, callback_context, dash_table, dcc, html, no_update
 
-from src.dashboard.data import NULL_AS_DASH
+from src.dashboard.data import NULL_AS_DASH, NUMBER_FORMAT
+
+TEXT_COLUMNS = ("producto", "semana", "dia")
+
+
+def _is_numeric_column(col):
+    return col not in TEXT_COLUMNS and col not in NULL_AS_DASH and col != "fecha"
+
+
+def _column_defs(columns, titles):
+    return [
+        {"name": titles[c], "id": c, "type": "numeric", "format": NUMBER_FORMAT}
+        if _is_numeric_column(c)
+        else {"name": titles[c], "id": c}
+        for c in columns
+    ]
 
 
 def _format_table_df(df, columns):
     out = df[columns].copy()
     for col in columns:
-        if col in ("producto", "semana", "dia"):
+        if col in TEXT_COLUMNS:
             continue
         if col == "fecha":
             out[col] = out[col].dt.strftime("%Y-%m-%d")
         elif col in NULL_AS_DASH:
-            out[col] = out[col].round(0).apply(lambda v: "–" if pd.isna(v) else str(int(v)))
+            out[col] = out[col].round(0).apply(lambda v: "–" if pd.isna(v) else f"{int(v):,}")
         else:
             out[col] = out[col].round(0)
     return out
@@ -81,7 +96,7 @@ def build_layout(tab_key, weekly_df, daily_df, weekly_titles, daily_titles, them
             html.Div(
                 dash_table.DataTable(
                     id=cid("tabla-semanal"),
-                    columns=[{"name": weekly_titles[c], "id": c} for c in weekly_cols],
+                    columns=_column_defs(weekly_cols, weekly_titles),
                     style_header=theme.table_style_header,
                     style_cell=theme.table_style_cell,
                     style_table=theme.table_style_table,
@@ -97,7 +112,7 @@ def build_layout(tab_key, weekly_df, daily_df, weekly_titles, daily_titles, them
             html.Div(
                 dash_table.DataTable(
                     id=cid("tabla-diaria"),
-                    columns=[{"name": daily_titles[c], "id": c} for c in daily_cols],
+                    columns=_column_defs(daily_cols, daily_titles),
                     style_header=theme.table_style_header,
                     style_cell=theme.table_style_cell,
                     style_table=theme.table_style_table,

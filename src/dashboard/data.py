@@ -1,6 +1,7 @@
 import os
 
 import duckdb
+from dash.dash_table.Format import Format, Group, Scheme
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -204,6 +205,10 @@ OMUH_DAILY_TITLES = {
 # columnas que en la vista semanal se muestran como texto con guion cuando
 # son NULL (la semana en curso, que aun no tiene cierre)
 NULL_AS_DASH = ("cierre", "inv_calculado")
+
+# formato compartido para toda columna numerica de metricas en las tablas:
+# separador de miles "," y decimales con "." (default de dash_table.Format)
+NUMBER_FORMAT = Format(scheme=Scheme.fixed, precision=0, group=Group.yes)
 
 
 def _connect():
