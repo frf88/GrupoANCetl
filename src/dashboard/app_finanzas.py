@@ -15,7 +15,7 @@ app.title = "Grupo ANC — Finanzas"
 require_basic_auth(server)
 
 app.layout = finanzas_tab.build_layout(estados_df, theme)
-finanzas_tab.register_callbacks(app, estados_df)
+finanzas_tab.register_callbacks(app, estados_df, theme)
 
 
 if __name__ == "__main__":
