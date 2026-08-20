@@ -78,7 +78,19 @@ def build_layout(estados_df, theme):
                 id="finanzas-tabla",
                 style_header=theme.table_style_header,
                 style_cell=theme.table_style_cell,
-                style_table={**theme.table_style_table, "overflowX": "auto", "width": "100%", "minWidth": "100%"},
+                # el P&L siempre tiene 18 filas fijas (o menos, si se
+                # excluye Salarios Socios) - a diferencia de otras tablas
+                # del dashboard con listas largas de productos, esta no
+                # necesita scroll interno: se le quita el maxHeight/
+                # overflowY del theme para que se vea completa.
+                style_table={
+                    **theme.table_style_table,
+                    "overflowX": "auto",
+                    "overflowY": "visible",
+                    "maxHeight": "none",
+                    "width": "100%",
+                    "minWidth": "100%",
+                },
                 page_action="none",
                 fixed_rows={"headers": True},
                 fixed_columns={"headers": True, "data": 1},
