@@ -27,6 +27,7 @@ semanas_bebidas = sorted(bebidas_weekly["semana"].unique())
 ULTIMA_SEMANA_COMPLETA_ANCESTRAL = semanas_bebidas[-1] if semanas_bebidas else None
 
 app = Dash(__name__, suppress_callback_exceptions=True)
+server = app.server
 app.title = "Grupo ANC — Control de Inventario"
 
 NAV_STYLE = {"background": "#111111", "padding": "10px 32px", "display": "flex", "gap": "24px"}
