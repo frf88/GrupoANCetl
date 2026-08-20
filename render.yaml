@@ -2,7 +2,7 @@ services:
   - type: web
     name: grupo-anc-dashboard
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: pip install uv && uv sync --frozen
     startCommand: uv run python -m src.pipeline && uv run gunicorn src.dashboard.app:server --bind 0.0.0.0:$PORT --timeout 120
     envVars:
