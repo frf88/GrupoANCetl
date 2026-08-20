@@ -78,7 +78,7 @@ def build_layout(estados_df, theme):
                 id="finanzas-tabla",
                 style_header=theme.table_style_header,
                 style_cell=theme.table_style_cell,
-                style_table={**theme.table_style_table, "overflowX": "auto"},
+                style_table={**theme.table_style_table, "overflowX": "auto", "width": "100%", "minWidth": "100%"},
                 page_action="none",
                 fixed_rows={"headers": True},
                 fixed_columns={"headers": True, "data": 1},
@@ -138,9 +138,17 @@ def register_callbacks(app, estados_df, theme):
                         if target.get(col) is not None:
                             target[col] = round(target[col] - (socios.get(col) or 0))
 
+        # anchos explicitos: "Linea" fija, las columnas de mes+total se
+        # reparten el resto del ancho en partes iguales - sin esto la
+        # tabla de Dash solo ocupa el ancho minimo de su contenido, no el
+        # del contenedor (aunque el contenedor si tenga width:100%).
+        categoria_width = "220px"
+        n_flex = len(month_ids) + 1
+        flex_width = f"calc((100% - {categoria_width}) / {n_flex})"
         style_cell_conditional = [
-            {"if": {"column_id": c}, "textAlign": "right"} for c in (month_ids + ["total"])
-        ] + [{"if": {"column_id": "categoria"}, "minWidth": "180px"}]
+            {"if": {"column_id": c}, "textAlign": "right", "width": flex_width, "minWidth": "70px"}
+            for c in (month_ids + ["total"])
+        ] + [{"if": {"column_id": "categoria"}, "width": categoria_width, "minWidth": categoria_width}]
         style_data_conditional = [
             {"if": {"row_index": "odd"}, "backgroundColor": theme.cream},
             {"if": {"filter_query": "{calculos_eerr} = 1"}, "backgroundColor": theme.cream_dim, "fontWeight": "700"},
